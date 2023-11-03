@@ -1,4 +1,3 @@
-from icecream import ic
 from random import randint, seed
 import sys
 import bitstring as bts
@@ -10,7 +9,6 @@ def call_globals():
     global golden_ratio
     global sboxes
     global LTTable
-    global SBoxDecimalTable
 
     IPTable = [
         0, 32, 64, 96, 1, 33, 65, 97, 2, 34, 66, 98, 3, 35, 67, 99,
@@ -81,14 +79,6 @@ def leftRotate(number, times_rotated):
 
 def rightRotate(number, times_rotated):
     return (number >> times_rotated) | (number << (32 - times_rotated)) & 0xFFFFFFFF
-
-
-def p(info):
-    print(info)
-
-
-def pt(info):
-    print(type(info))
 
 
 def generate_key(key_len=256, sneed=2023):
@@ -165,14 +155,14 @@ def endian_and_padding(binary):  # rewrite using bitarray? Or leave be
     return blocks128
 
 
-def IPTable_func(blocks128):
+def IPTable_func(blocks128):  # rewritten, verified.
     IPTabled_blocks128 = bts.BitArray(blocks128)
     for idx in range(128):
         IPTabled_blocks128[idx] = blocks128[IPTable[idx]]
     return IPTabled_blocks128
 
 
-def FPTable_func(blocks128):
+def FPTable_func(blocks128):  # rewritten, verified.
     FPTabled_blocks128 = bts.BitArray(blocks128)
     for idx in range(128):
         FPTabled_blocks128[idx] = blocks128[FPTable[idx]]
@@ -192,7 +182,7 @@ def key_132(subkeys):  # rewritten, verified.
         xor_variable = subkeys[(- 8)] ^ subkeys[(- 5)]
         xor_variable ^= subkeys[(- 3)]
         xor_variable ^= subkeys[(- 1)]
-        xor_variable ^= golden_ratio  # I feel like this doesn't work correctly
+        xor_variable ^= golden_ratio
         intcheck = bts.BitArray(uint=idx, length=32)
         intcheck.reverse()
         xor_variable ^= intcheck
@@ -202,7 +192,7 @@ def key_132(subkeys):  # rewritten, verified.
     return key_output
 
 
-def output_key(key_132):  # rewrite using bitarray
+def output_key(key_132):  # rewritten, verified.
     full_output = list()
 
     for idx in range(33):
@@ -212,24 +202,19 @@ def output_key(key_132):  # rewrite using bitarray
         word2 = (key_132[2 + (4 * idx)])
         word3 = (key_132[3 + (4 * idx)])
 
-        for idx3 in range(32):  # 32
-            nibble = bts.BitArray(bool=word3[idx3])
-            nibble.append(bts.BitArray(bool=word2[idx3]))
-            nibble.append(bts.BitArray(bool=word1[idx3]))
-            nibble.append(bts.BitArray(bool=word0[idx3]))  # jank, fix later
+        for idx2 in range(32):  # 32
+            nibble = bts.BitArray(bool=word3[idx2])
+            nibble.append(bts.BitArray(bool=word2[idx2]))
+            nibble.append(bts.BitArray(bool=word1[idx2]))
+            nibble.append(bts.BitArray(bool=word0[idx2]))  # jank, fix later
             outnum_ba = bts.BitArray(uint=int(sboxes[(3 - idx) % 8][nibble.uint][0]), length=4)
             outbox[0].append(bts.BitArray(bool=outnum_ba[3]))
             outbox[1].append(bts.BitArray(bool=outnum_ba[2]))
             outbox[2].append(bts.BitArray(bool=outnum_ba[1]))
             outbox[3].append(bts.BitArray(bool=outnum_ba[0]))
-        full_output.append(outbox[0] + outbox[1] + outbox[2] + outbox[3])
+        temp = outbox[0] + outbox[1] + outbox[2] + outbox[3]
+        full_output.append(IPTable_func(temp))
     return full_output
-
-
-def ic_testing(variable):
-    ic(variable)
-    ic(type(variable))
-    ic(len(variable))
 
 
 def print_ba(data, length=128):
@@ -247,8 +232,14 @@ def print_ba(data, length=128):
 def sbox_function(word, round_num):
     output = bts.BitArray(uint=0, length=32)
     for idx in range(8):
-        temp = sboxes[round_num][word[0 + (idx * 4):4 + (idx * 4)].uint][0]
-        output[0 + (idx * 4):4 + (idx * 4)] = bts.BitArray(uint=temp, length=4)
+        rearrange = bts.BitArray(bool=word[3 + (idx * 4)])
+        rearrange.append(bts.BitArray(bool=word[2 + (idx * 4)]))
+        rearrange.append(bts.BitArray(bool=word[1 + (idx * 4)]))
+        rearrange.append(bts.BitArray(bool=word[0 + (idx * 4)]))
+        temp = sboxes[round_num % 8][rearrange.uint][0]
+        ba_temp = bts.BitArray(uint=temp, length=4)
+        ba_temp.reverse()
+        output[0 + (idx * 4):4 + (idx * 4)] = ba_temp
     return output
 
 
