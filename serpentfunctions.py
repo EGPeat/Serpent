@@ -1,6 +1,7 @@
 from icecream import ic
 from random import randint, seed
 import sys
+import bitstring as bts
 
 
 def call_globals():
@@ -8,6 +9,7 @@ def call_globals():
     global FPTable
     global golden_ratio
     global sboxes
+    global LTTable
     IPTable = [
         0, 32, 64, 96, 1, 33, 65, 97, 2, 34, 66, 98, 3, 35, 67, 99,
         4, 36, 68, 100, 5, 37, 69, 101, 6, 38, 70, 102, 7, 39, 71, 103,
@@ -26,6 +28,39 @@ def call_globals():
         66, 70, 74, 78, 82, 86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 126,
         3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63,
         67, 71, 75, 79, 83, 87, 91, 95, 99, 103, 107, 111, 115, 119, 123, 127]
+    LTTable = [
+        [16, 52, 56, 70, 83, 94, 105], [72, 114, 125], [2, 9, 15, 30, 76, 84, 126], [36, 90, 103],
+        [20, 56, 60, 74, 87, 98, 109], [1, 76, 118], [2, 6, 13, 19, 34, 80, 88], [40, 94, 107],
+        [24, 60, 64, 78, 91, 102, 113], [5, 80, 122], [6, 10, 17, 23, 38, 84, 92], [44, 98, 111],
+        [28, 64, 68, 82, 95, 106, 117], [9, 84, 126], [10, 14, 21, 27, 42, 88, 96], [48, 102, 115],
+        [32, 68, 72, 86, 99, 110, 121], [2, 13, 88], [14, 18, 25, 31, 46, 92, 100], [52, 106, 119],
+        [36, 72, 76, 90, 103, 114, 125], [6, 17, 92], [18, 22, 29, 35, 50, 96, 104], [56, 110, 123],
+        [1, 40, 76, 80, 94, 107, 118], [10, 21, 96], [22, 26, 33, 39, 54, 100, 108], [60, 114, 127],
+        [5, 44, 80, 84, 98, 111, 122], [14, 25, 100], [26, 30, 37, 43, 58, 104, 112], [3, 118],
+        [9, 48, 84, 88, 102, 115, 126], [18, 29, 104], [30, 34, 41, 47, 62, 108, 116], [7, 122],
+        [2, 13, 52, 88, 92, 106, 119], [22, 33, 108], [34, 38, 45, 51, 66, 112, 120], [11, 126],
+        [6, 17, 56, 92, 96, 110, 123], [26, 37, 112], [38, 42, 49, 55, 70, 116, 124], [2, 15, 76],
+        [10, 21, 60, 96, 100, 114, 127], [30, 41, 116], [0, 42, 46, 53, 59, 74, 120], [6, 19, 80],
+        [3, 14, 25, 100, 104, 118], [34, 45, 120], [4, 46, 50, 57, 63, 78, 124], [10, 23, 84],
+        [7, 18, 29, 104, 108, 122], [38, 49, 124], [0, 8, 50, 54, 61, 67, 82], [14, 27, 88],
+        [11, 22, 33, 108, 112, 126], [0, 42, 53], [4, 12, 54, 58, 65, 71, 86], [18, 31, 92],
+        [2, 15, 26, 37, 76, 112, 116], [4, 46, 57], [8, 16, 58, 62, 69, 75, 90], [22, 35, 96],
+        [6, 19, 30, 41, 80, 116, 120], [8, 50, 61], [12, 20, 62, 66, 73, 79, 94], [26, 39, 100],
+        [10, 23, 34, 45, 84, 120, 124], [12, 54, 65], [16, 24, 66, 70, 77, 83, 98], [30, 43, 104],
+        [0, 14, 27, 38, 49, 88, 124], [16, 58, 69], [20, 28, 70, 74, 81, 87, 102], [34, 47, 108],
+        [0, 4, 18, 31, 42, 53, 92], [20, 62, 73], [24, 32, 74, 78, 85, 91, 106], [38, 51, 112],
+        [4, 8, 22, 35, 46, 57, 96], [24, 66, 77], [28, 36, 78, 82, 89, 95, 110], [42, 55, 116],
+        [8, 12, 26, 39, 50, 61, 100], [28, 70, 81], [32, 40, 82, 86, 93, 99, 114], [46, 59, 120],
+        [12, 16, 30, 43, 54, 65, 104], [32, 74, 85], [36, 90, 103, 118], [50, 63, 124], [16, 20, 34, 47, 58, 69, 108],
+        [36, 78, 89], [40, 94, 107, 122], [0, 54, 67], [20, 24, 38, 51, 62, 73, 112],
+        [40, 82, 93], [44, 98, 111, 126], [4, 58, 71], [24, 28, 42, 55, 66, 77, 116],
+        [44, 86, 97], [2, 48, 102, 115], [8, 62, 75], [28, 32, 46, 59, 70, 81, 120],
+        [48, 90, 101], [6, 52, 106, 119], [12, 66, 79], [32, 36, 50, 63, 74, 85, 124],
+        [52, 94, 105], [10, 56, 110, 123], [16, 70, 83], [0, 36, 40, 54, 67, 78, 89],
+        [56, 98, 109], [14, 60, 114, 127], [20, 74, 87], [4, 40, 44, 58, 71, 82, 93],
+        [60, 102, 113], [3, 18, 72, 114, 118, 125], [24, 78, 91], [8, 44, 48, 62, 75, 86, 97],
+        [64, 106, 117], [1, 7, 22, 76, 118, 122], [28, 82, 95], [12, 48, 52, 66, 79, 90, 101],
+        [68, 110, 121], [5, 11, 26, 80, 122, 126], [32, 86, 99]]
     golden_ratio = 0x9e3779b9
 
     sboxes = ([[3], [8], [15], [1], [10], [6], [5], [11], [14], [13], [4], [2], [7], [0], [9], [12]],
@@ -99,11 +134,11 @@ def binary_from_file(default_choice=True):
         filename = "sampletext"
     with open(f"{filename}.txt", 'rb') as file:
         info = file.read()
-    return info
+    return info, filename
 
 
 # changes endian as necessary, pads to nearest multiple of 128
-def endian_and_padding(binary):
+def endian_and_padding(binary):  # rewrite using bitarray? Or leave be
     binary = bytearray(binary)
     endian_value = sys.byteorder
 
@@ -130,28 +165,27 @@ def endian_and_padding(binary):
 
 
 def IPTable_func(blocks128):
-    IPTabled_blocks128 = bytearray([0] * 128)
+    IPTabled_blocks128 = bts.BitArray(blocks128)
     for idx in range(128):
         IPTabled_blocks128[idx] = blocks128[IPTable[idx]]
     return IPTabled_blocks128
 
 
 def FPTable_func(blocks128):
-    FPTabled_blocks128 = bytearray([0] * 128)
+    FPTabled_blocks128 = bts.BitArray(blocks128)
     for idx in range(128):
         FPTabled_blocks128[idx] = blocks128[FPTable[idx]]
     return FPTabled_blocks128
 
 
-def subkey(key):
+def subkey(key):  # rewrite using bitarray
     subkeys = list()
     for idx in range(7, -1, -1):
         subkeys.append(key[(0 + (idx * 2)):(2 + (idx * 2))])
-    ic(subkeys)
     return subkeys
 
 
-def key_132(subkeys):
+def key_132(subkeys):  # rewrite using bitarray
     key_output = list()
     for idx in range(132):  # range 132
         xor_variable = bytes(a ^ b for (a, b) in zip(subkeys[abs(idx - 7) % 8], subkeys[abs(idx - 5) % 8]))
@@ -164,7 +198,7 @@ def key_132(subkeys):
     return key_output
 
 
-def output_key(key_132):
+def output_key(key_132):  # rewrite using bitarray
     key_output = list()
     full_output = list()
 
@@ -193,11 +227,40 @@ def output_key(key_132):
 
         for x in range(4):
             key_output.append(outbox[x][2:])
-
-    ic(len(key_output))
-    ic(len(key_output[-1]))
-    ic(key_output[-1])
     for i in range(33):
         full_output.append(key_output[4 * i] + key_output[4 * i + 1] + key_output[4 * i + 2] + key_output[4 * i + 3])
-    ic(full_output[-1])
     return full_output
+
+
+def ic_testing(variable):
+    ic(variable)
+    ic(type(variable))
+    ic(len(variable))
+
+
+def print_ba(data, length=128):
+    bin_nums = ''
+    for idx in range(length):
+        if (data[idx]):
+            bin_nums += "1"
+        else:
+            bin_nums += "0"
+    print(bin_nums)
+
+
+def sbox_function(word, round_num):
+    output = bts.BitArray(uint=0, length=32)
+    for idx in range(8):
+        temp = sboxes[round_num][word[0 + (idx * 4):4 + (idx * 4)].uint][0]
+        output[0 + (idx * 4):4 + (idx * 4)] = bts.BitArray(uint=temp, length=4)
+    return output
+
+
+def lin_transform(input):
+    result = bts.BitArray(uint=0, length=128)
+    for idx in range(len(LTTable)):
+        outputBit = False
+        for yidx in LTTable[idx]:
+            outputBit = (outputBit ^ input[yidx])
+        result[idx] = outputBit
+    return result
