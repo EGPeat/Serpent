@@ -10,6 +10,8 @@ def call_globals():
     global golden_ratio
     global sboxes
     global LTTable
+    global SBoxDecimalTable
+
     IPTable = [
         0, 32, 64, 96, 1, 33, 65, 97, 2, 34, 66, 98, 3, 35, 67, 99,
         4, 36, 68, 100, 5, 37, 69, 101, 6, 38, 70, 102, 7, 39, 71, 103,
@@ -61,7 +63,7 @@ def call_globals():
         [60, 102, 113], [3, 18, 72, 114, 118, 125], [24, 78, 91], [8, 44, 48, 62, 75, 86, 97],
         [64, 106, 117], [1, 7, 22, 76, 118, 122], [28, 82, 95], [12, 48, 52, 66, 79, 90, 101],
         [68, 110, 121], [5, 11, 26, 80, 122, 126], [32, 86, 99]]
-    golden_ratio = 0x9e3779b9
+    golden_ratio = bts.BitArray(bin='10011101100111101110110001111001', length=32)
 
     sboxes = ([[3], [8], [15], [1], [10], [6], [5], [11], [14], [13], [4], [2], [7], [0], [9], [12]],
               [[15], [12], [2], [7], [9], [0], [5], [10], [1], [11], [14], [8], [6], [13], [3], [4]],
@@ -89,13 +91,12 @@ def pt(info):
     print(type(info))
 
 
-def generate_key(key_len=128, sneed=2023):
+def generate_key(key_len=256, sneed=2023):
     seed(sneed)
-    key_bin = '0b'
+    key_bin = bts.BitArray(uint=0, length=key_len)
     for idx in range(key_len):
-        key_bin += str(randint(0, 1))
-
-    return int(key_bin, 2)
+        key_bin[idx] = (randint(0, 1))
+    return key_bin
 
 
 def input_val(maxSize=16, valType=int, options=False):  # unused
@@ -178,57 +179,50 @@ def FPTable_func(blocks128):
     return FPTabled_blocks128
 
 
-def subkey(key):  # rewrite using bitarray
+def subkey(key):  # rewritten, verified.
     subkeys = list()
-    for idx in range(7, -1, -1):
-        subkeys.append(key[(0 + (idx * 2)):(2 + (idx * 2))])
+    for idx in range(0, 8):
+        subkeys.append(key[(0 + (idx * 32)):(32 + (idx * 32))])
     return subkeys
 
 
-def key_132(subkeys):  # rewrite using bitarray
+def key_132(subkeys):  # rewritten, verified.
     key_output = list()
-    for idx in range(132):  # range 132
-        xor_variable = bytes(a ^ b for (a, b) in zip(subkeys[abs(idx - 7) % 8], subkeys[abs(idx - 5) % 8]))
-        xor_variable2 = bytes(a ^ b for (a, b) in zip(xor_variable, subkeys[abs(idx - 3) % 8]))
-        xor_variable3 = int.from_bytes(bytes(a ^ b for (a, b) in zip(xor_variable2, subkeys[abs(idx - 1) % 8])), 'little')
-        xor_variable4 = xor_variable3 ^ golden_ratio  # I feel like this doesn't work correctly
-        xor_variable5 = xor_variable4 ^ idx
-        xor_variable5 = leftRotate(xor_variable5, 11)
-        key_output.append(xor_variable5)
+    for idx in range(132):
+        xor_variable = subkeys[(- 8)] ^ subkeys[(- 5)]
+        xor_variable ^= subkeys[(- 3)]
+        xor_variable ^= subkeys[(- 1)]
+        xor_variable ^= golden_ratio  # I feel like this doesn't work correctly
+        intcheck = bts.BitArray(uint=idx, length=32)
+        intcheck.reverse()
+        xor_variable ^= intcheck
+        xor_variable.ror(11)
+        subkeys.append(xor_variable)
+        key_output.append(xor_variable)
     return key_output
 
 
 def output_key(key_132):  # rewrite using bitarray
-    key_output = list()
     full_output = list()
 
     for idx in range(33):
-        outbox = ['0b', '0b', '0b', '0b']
-        word0 = int.to_bytes(key_132[0 + (4 * idx)], 4, 'little')
-        word1 = int.to_bytes(key_132[1 + (4 * idx)], 4, 'little')
-        word2 = int.to_bytes(key_132[2 + (4 * idx)], 4, 'little')
-        word3 = int.to_bytes(key_132[3 + (4 * idx)], 4, 'little')
-        for idx2 in range(4):
-            words = list()
-            words.append('{:08b}'.format((word0[idx2])))
-            words.append('{:08b}'.format((word1[idx2])))
-            words.append('{:08b}'.format((word2[idx2])))
-            words.append('{:08b}'.format((word3[idx2])))
+        outbox = [bts.BitArray(), bts.BitArray(), bts.BitArray(), bts.BitArray()]
+        word0 = (key_132[0 + (4 * idx)])
+        word1 = (key_132[1 + (4 * idx)])
+        word2 = (key_132[2 + (4 * idx)])
+        word3 = (key_132[3 + (4 * idx)])
 
-            for idx3 in range(8):
-                nibble = words[0][idx3] + words[1][idx3] + words[2][idx3] + words[3][idx3]
-                numval = int(nibble, 2)
-                outnum = int(sboxes[(3 - idx) % 8][numval][0])
-                tempbin = '{:04b}'.format((outnum))
-                outbox[0] += tempbin[0]
-                outbox[1] += tempbin[1]
-                outbox[2] += tempbin[2]
-                outbox[3] += tempbin[3]
-
-        for x in range(4):
-            key_output.append(outbox[x][2:])
-    for i in range(33):
-        full_output.append(key_output[4 * i] + key_output[4 * i + 1] + key_output[4 * i + 2] + key_output[4 * i + 3])
+        for idx3 in range(32):  # 32
+            nibble = bts.BitArray(bool=word3[idx3])
+            nibble.append(bts.BitArray(bool=word2[idx3]))
+            nibble.append(bts.BitArray(bool=word1[idx3]))
+            nibble.append(bts.BitArray(bool=word0[idx3]))  # jank, fix later
+            outnum_ba = bts.BitArray(uint=int(sboxes[(3 - idx) % 8][nibble.uint][0]), length=4)
+            outbox[0].append(bts.BitArray(bool=outnum_ba[3]))
+            outbox[1].append(bts.BitArray(bool=outnum_ba[2]))
+            outbox[2].append(bts.BitArray(bool=outnum_ba[1]))
+            outbox[3].append(bts.BitArray(bool=outnum_ba[0]))
+        full_output.append(outbox[0] + outbox[1] + outbox[2] + outbox[3])
     return full_output
 
 
@@ -239,6 +233,8 @@ def ic_testing(variable):
 
 
 def print_ba(data, length=128):
+    length = len(data)
+
     bin_nums = ''
     for idx in range(length):
         if (data[idx]):

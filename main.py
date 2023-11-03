@@ -10,17 +10,14 @@ rng = sf.input_val(16, int)
 key = sf.generate_key(length, rng)"""
 
 sf.call_globals()
+
+#key = bts.BitArray(uint=0, length=128)
 key = sf.generate_key()
-key = bytearray(key.to_bytes(16, 'little'))
+#sf.print_ba(key,256)
+
 subkeys = sf.subkey(key)
-
 usable_keys = sf.key_132(subkeys)
-full_keys_not_ba = sf.output_key(usable_keys)
-
-full_keys = list()
-for idx in range(len(full_keys_not_ba)):
-    full_keys.append(bts.BitArray(uint=(int(full_keys_not_ba[idx], 2)), length=128))
-
+full_keys = sf.output_key(usable_keys)
 
 binary_data, filename = sf.binary_from_file()  # change
 padded_info = bts.BitArray(sf.endian_and_padding(binary_data))
