@@ -1,6 +1,7 @@
 from random import randint, seed
 import sys
 import bitstring as bts
+import numpy as np
 
 
 def call_globals():
@@ -217,37 +218,26 @@ def output_key(key_132):  # rewritten, verified.
     return full_output
 
 
-def print_ba(data, length=128):
-    length = len(data)
-
-    bin_nums = ''
-    for idx in range(length):
-        if (data[idx]):
-            bin_nums += "1"
-        else:
-            bin_nums += "0"
-    print(bin_nums)
-
-
 def sbox_function(word, round_num):
     output = bts.BitArray(uint=0, length=32)
+    word.reverse()
     for idx in range(8):
-        rearrange = bts.BitArray(bool=word[3 + (idx * 4)])
-        rearrange.append(bts.BitArray(bool=word[2 + (idx * 4)]))
-        rearrange.append(bts.BitArray(bool=word[1 + (idx * 4)]))
-        rearrange.append(bts.BitArray(bool=word[0 + (idx * 4)]))
+        rearrange = (word[0 + ((7 - idx) * 4):4 + ((7 - idx) * 4)])
         temp = sboxes[round_num % 8][rearrange.uint][0]
         ba_temp = bts.BitArray(uint=temp, length=4)
         ba_temp.reverse()
         output[0 + (idx * 4):4 + (idx * 4)] = ba_temp
+    print(output.b)
     return output
 
 
 def lin_transform(input):
-    result = bts.BitArray(uint=0, length=128)
+    input = np.array(input, dtype=bool)
+    result = [bool(np.bitwise_xor.reduce(input[yidx])) for yidx in LTTable]
+    return result
+    """result = bts.BitArray(uint=0, length=128)
     for idx in range(len(LTTable)):
         outputBit = False
         for yidx in LTTable[idx]:
-            outputBit = (outputBit ^ input[yidx])
-        result[idx] = outputBit
-    return result
+            outputBit ^= input[yidx]
+        result[idx] = outputBit"""
